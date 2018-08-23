@@ -1,17 +1,11 @@
 import fs from 'fs';
-import Koa from 'koa';
-import { Context as KoaContext } from 'koa';
-import bodyParser from 'koa-bodyparser';
-import logger from 'koa-logger';
+import { Application, Context } from '@curveball/core';
+import bodyParser from '@curveball/bodyparser';
 // @ts-ignore don't have a definition for this.
 import Route from 'koa-path-match';
 import koaStatic from 'koa-static';
 
-type Context = KoaContext & {
-  params: { [s: string]: string }
-};
-
-const app = new Koa();
+const app = new Application();
 const route = Route();
 
 let resources: {
@@ -19,7 +13,15 @@ let resources: {
 } = {};
 
 // Log to console
-app.use(logger());
+app.use(async (ctx, next) => {
+  console.log(
+    '->', ctx.request.method, ctx.request.path
+  );
+  await next();
+  console.log(
+    '<-', ctx.response.status
+  );
+});
 
 // Use body parser
 app.use(bodyParser());
