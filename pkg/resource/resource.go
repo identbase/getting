@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"net/url"
+
 	"github.com/identbase/getting/pkg/resource/representor"
 )
 
@@ -10,7 +12,7 @@ example be able to GET its presentation. A resource may also have a list of
 links on them, pointing to other resources. */
 type Resource struct {
 	client      *Getting
-	uri         string
+	uri         *url.URL
 	contentType string
 	representor *representor.Representor
 }
@@ -22,9 +24,9 @@ type Getting interface {
 
 /*
 New creates a new Resource object. */
-func New(c *Getting, u string) *Resource {
+func New(c Getting, u *url.URL) *Resource {
 	r := Resource{
-		client: c,
+		client: &c,
 		uri:    u,
 	}
 
