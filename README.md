@@ -14,12 +14,12 @@ The library supports [HAL][hal], [JSON:API][jsonapi],
 
 ### Example
 
-Coming soon.
+**Coming soon.**
 
 Docs
 ----
 
-Coming soon.
+**Coming soon.**
 
 Notable Features
 ----------------
@@ -65,7 +65,7 @@ automatically, pointing to the person that created the article.
 
 This is how that interaction might look like:
 
-Coming soon.
+**Coming soon.**
 
 ### Embedded resources
 
@@ -83,7 +83,7 @@ Getting with a HAL server, you can therefore completely ignore them.
 For example, given a collection resource with many resources that hal the
 relationshiptype `item`, you might use the following API:
 
-Coming soon.
+**Coming soon.**
 
 Given the last example, if the server did _not_ use embedding, it will result
 in a HTTP GET request for every item in the collection.
