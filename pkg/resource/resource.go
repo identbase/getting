@@ -11,10 +11,10 @@ Resource represents endpoint on a server. The endpoint has a uri, you  might for
 example be able to GET its presentation. A resource may also have a list of
 links on them, pointing to other resources. */
 type Resource struct {
-	client      *Getting
-	uri         *url.URL
-	contentType string
-	representor *representor.Representor
+	Client      Getting
+	URI         *url.URL
+	ContentType string
+	Representor *representor.Representor
 }
 
 /*
@@ -26,18 +26,28 @@ type Getting interface {
 New creates a new Resource object. */
 func New(c Getting, u *url.URL) *Resource {
 	r := Resource{
-		client: &c,
-		uri:    u,
+		Client: &c,
+		URI:    u,
 	}
 
 	return &r
 }
 
 /*
+refresh fetches the resource representation. */
+func (r *Resource) refresh() {
+
+}
+
+/*
 representation returns the resource in the specified representation. */
 func (r *Resource) representation() *representor.Representor {
 	// TODO: Check if we should refresh here
-	return r.representor
+	if r.Representor == nil {
+		r.refresh()
+	}
+
+	return r.Representor
 }
 
 /*
