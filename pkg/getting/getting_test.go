@@ -85,8 +85,6 @@ func Test_Getting_Go_UrlParse(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r, e := client.Go(tt.u)
 
-			fmt.Println("result", r, e)
-
 			if tt.err != nil && e == nil {
 				t.Errorf("getting.Go() should error, got nil")
 			} else if tt.err == nil && e != nil {
