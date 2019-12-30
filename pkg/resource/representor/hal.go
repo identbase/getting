@@ -3,7 +3,7 @@ package representor
 import (
 	// "bytes"
 	"encoding/json"
-	// "errors"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -19,7 +19,8 @@ default option to use. */
 type HALRepresentor struct {
 	URI         url.URL
 	ContentType string
-	Body        string
+	Body        interface{}
+	Links       link.LinkSet
 }
 
 type HALLink struct {
@@ -37,6 +38,48 @@ type HALBody struct {
 	// This should be only JSON acceptable types: string, int, float, bool
 	Properties map[string]interface{} `json:"-"`
 	Embedded   map[string]HALBody     `json:"_embedded,omitempty"`
+}
+
+func mapInterfaceToHALLink(i map[string]interface{}) HALLink {
+	// TODO: This seems like there is a
+	// better way to do this
+	var link HALLink
+	_, nok := i["name"]
+	_, tok := i["type"]
+
+	if !nok && !tok {
+		link = HALLink{
+			HRef:  i["href"].(string),
+			Title: i["title"].(string),
+		}
+	} else {
+		if nok && tok {
+			link = HALLink{
+				HRef:  i["href"].(string),
+				Name:  i["name"].(string),
+				Title: i["title"].(string),
+				Type:  i["type"].(string),
+			}
+		} else {
+			if nok {
+				link = HALLink{
+					HRef:  i["href"].(string),
+					Name:  i["name"].(string),
+					Title: i["title"].(string),
+				}
+			}
+
+			if tok {
+				link = HALLink{
+					HRef:  i["href"].(string),
+					Title: i["title"].(string),
+					Type:  i["type"].(string),
+				}
+			}
+		}
+	}
+
+	return link
 }
 
 /*
@@ -59,46 +102,19 @@ func (b *HALBody) UnmarshalJSON(d []byte) error {
 			// _links: {
 			for lk, lv := range lbuf {
 				if lvbuf, ok := lv.(map[string]interface{}); ok {
-					// TODO: This seems like there is a
-					// better way to do this
-					var link HALLink
-					_, ok1 := lvbuf["name"]
-					_, ok2 := lvbuf["type"]
 
-					if ok1 {
-						link = HALLink{
-							HRef:  lvbuf["href"].(string),
-							Name:  lvbuf["name"].(string),
-							Title: lvbuf["title"].(string),
-						}
-					} else if ok2 {
-						link = HALLink{
-							HRef:  lvbuf["href"].(string),
-							Title: lvbuf["title"].(string),
-							Type:  lvbuf["type"].(string),
-						}
-					} else if ok1 && ok2 {
-						link = HALLink{
-							HRef:  lvbuf["href"].(string),
-							Name:  lvbuf["name"].(string),
-							Title: lvbuf["title"].(string),
-							Type:  lvbuf["type"].(string),
-						}
-					} else {
-						link = HALLink{
-							HRef:  lvbuf["href"].(string),
-							Title: lvbuf["title"].(string),
-						}
-					}
 					// self: {
-					links[lk] = []HALLink{link}
+					links[lk] = []HALLink{
+						mapInterfaceToHALLink(lvbuf),
+					}
 				} else if lvbuf, ok := lv.([]interface{}); ok {
 					// item: [
 					for i := 0; i < len(lvbuf); i++ {
-						links[lk] = append(links[lk], HALLink{
-							HRef:  lvbuf[i].(map[string]interface{})["href"].(string),
-							Title: lvbuf[i].(map[string]interface{})["title"].(string),
-						})
+						// TODO: This seems like there is a
+						// better way to do this
+						lvbufitem := lvbuf[i].(map[string]interface{})
+
+						links[lk] = append(links[lk], mapInterfaceToHALLink(lvbufitem))
 					}
 				}
 			}
@@ -109,6 +125,10 @@ func (b *HALBody) UnmarshalJSON(d []byte) error {
 			// b.Embedded = v.([]*HALBody)
 			fmt.Println("TODO: Unmarshal _links", bk, bv)
 		default:
+			if b.Properties == nil {
+				b.Properties = map[string]interface{}{}
+			}
+
 			b.Properties[bk] = bv
 		}
 	}
@@ -177,36 +197,79 @@ func (r *HALRepresentor) parse(b []byte) (interface{}, error) {
 	return h, nil
 }
 
+// TODO: This function should be called in parse (and there should also be a
+// parseEmbedded called there too)
 /*
 parseLinks converts HALLink into link.Link. */
-func (r *HALRepresentor) parseLinks(b string) []*link.Link {
-	return []*link.Link{}
+func (r *HALRepresentor) parseLinks(b interface{}) []*link.Link {
+	h := b.(HALBody)
+	l := []*link.Link{}
+
+	// TODO: This doesnt account for links in the Header
+	for k, v := range h.Links {
+		for i := 0; i < len(v); i++ {
+			l = append(l, &link.Link{
+				Context: r.URI.String(),
+				HRef:    v[i].HRef,
+				Rel:     k,
+				Name:    v[i].Name,
+				Title:   v[i].Title,
+				Type:    v[i].Type,
+			})
+		}
+	}
+
+	return l
 }
 
 /*
 GetBody */
 func (r *HALRepresentor) GetBody() interface{} {
-	return nil
+	return r.Body
 }
 
 /*
-SetBody */
-func (r *HALRepresentor) setBody(b interface{}) {}
+setBody */
+func (r *HALRepresentor) setBody(b interface{}) {
+	r.Body = b.(HALBody)
+	// TODO: Initialize this somewhere else
+	r.Links = link.LinkSet{}
+	// TODO: The links dont need to be reparsed here really
+	l := r.parseLinks(r.Body)
+	for _, v := range l {
+		if r.Links.Has(v.Rel) {
+			r.Links.Add(v.Rel, *v)
+		} else {
+			r.Links.Set(v.Rel, append([]link.Link{}, *v))
+		}
+	}
+}
 
 /*
 GetLink */
-func (r *HALRepresentor) GetLink(rt string) *link.Link {
-	return nil
+func (r *HALRepresentor) GetLink(rt string) (*link.Link, error) {
+	l := r.Links.Get(rt)
+
+	if len(l) == 0 {
+		return nil, errors.New("link not found")
+	}
+
+	return &l[0], nil
 }
 
 /*
 GetLinks */
-func (r *HALRepresentor) GetLinks(rt string) []*link.Link {
-	return []*link.Link{}
+func (r *HALRepresentor) GetLinks(rt string) []link.Link {
+
+	if rt == "" {
+		return r.Links.Values()
+	}
+
+	return r.Links.Get(rt)
 }
 
 /*
 HasLink */
 func (r *HALRepresentor) HasLink(rt string) bool {
-	return false
+	return r.Links.Has(rt)
 }

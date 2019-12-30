@@ -129,3 +129,7 @@ func Test_HALBody_UnmarshalJSON(t *testing.T) {
 		})
 	}
 }
+
+func Test_HALBody_MarshalJSON(t *testing.T) {
+
+}

@@ -37,7 +37,7 @@ func (g *Getting) Follow(rt string) (*resource.Resource, error) {
 		return nil, err
 	}
 
-	return r.Follow(rt), nil
+	return r.Follow(rt)
 
 }
 
@@ -46,7 +46,12 @@ Go returns a resource by its uri. This function doesnt require a uri
 if one is not specified, it will return the bookmark resource. */
 func (g *Getting) Go(u string) (*resource.Resource, error) {
 
-	uri, err := url.Parse(g.bookmark + u)
+	ubuf, err := url.Parse(g.bookmark)
+	if err != nil {
+		return nil, err
+	}
+
+	uri, err := ubuf.Parse(u)
 	if err != nil {
 		return nil, err
 	}
