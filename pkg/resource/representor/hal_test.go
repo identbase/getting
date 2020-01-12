@@ -2,6 +2,9 @@ package representor
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -131,5 +134,44 @@ func Test_HALBody_UnmarshalJSON(t *testing.T) {
 }
 
 func Test_HALBody_MarshalJSON(t *testing.T) {
+	tests := []struct {
+		name string
+		d    HALBody
+		want string
+		err  error
+	}{
+		{
+			"success simple",
+			HALBody{
+				Links: map[string][]HALLink{
+					"self": []HALLink{
+						HALLink{
+							HRef:  "/",
+							Title: "Test",
+							Name:  "alternate",
+							Type:  "blob",
+						},
+					},
+				},
+				Properties: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+			`{"_links":{"self":{"href":"/","name":"alternate","title":"Test","type": "blob"}},"foo": "bar"}`,
+			nil,
+		},
+	}
 
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b, err := json.Marshal(tt.d)
+			if err != nil {
+				t.Errorf("json.Marshal() should not error, got %v", err)
+			}
+
+			if strings.Contains(tt.want, fmt.Sprintf("%s", b)) {
+				t.Errorf("json.Marshal() expected '%v', got '%v'", tt.want, fmt.Sprintf("%s", b))
+			}
+		})
+	}
 }

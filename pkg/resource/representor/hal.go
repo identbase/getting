@@ -139,23 +139,35 @@ func (b *HALBody) UnmarshalJSON(d []byte) error {
 /*
 MarshalJSON will properly convert a HALBody into JSON. */
 func (b HALBody) MarshalJSON() ([]byte, error) {
-	var r map[string]interface{}
+	r := map[string]interface{}{}
 
 	for k, v := range b.Properties {
-		fmt.Println("Marshalling properties", k, v)
 		r[k] = v
 	}
 
-	r["_embedded"] = map[string]HALBody{}
-	for k, v := range b.Embedded {
-		// TODO: Marshal the _embedded stuff recursively
-		fmt.Println("TODO: Marshal _embedded", k, v)
+	if len(b.Embedded) > 0 {
+		r["_embedded"] = make(map[string]HALBody)
+		for k, v := range b.Embedded {
+			// TODO: Marshal the _embedded stuff recursively
+			fmt.Println("TODO: Marshal _embedded", k, v)
+		}
 	}
 
-	r["_links"] = map[string]HALLink{}
-	for k, v := range b.Links {
-		// TODO: Marshal the _links
-		fmt.Println("TODO: Marshal _links", k, v)
+	if len(b.Links) > 0 {
+		r["_links"] = map[string]interface{}{}
+		for k, v := range b.Links {
+			if len(v) == 1 {
+				l := map[string]HALLink{}
+				l[k] = v[0]
+
+				r["_links"] = l
+			} else {
+				l := map[string][]HALLink{}
+				l[k] = v
+
+				r["_links"] = l
+			}
+		}
 	}
 
 	buf, err := json.Marshal(&r)
