@@ -20,6 +20,7 @@ type Resource struct {
 	ContentType        string
 	Representor        Representor
 	nextRefreshHeaders map[string]string
+	Variables          map[string]string
 }
 
 /*
@@ -176,16 +177,26 @@ func (r *Resource) Go(u string) (*Resource, error) {
 /*
 Follow follows a relationship, based on its reltype. For example, this might be
 'alternate', 'item', 'edit', or a custom url-based one. */
-func (r *Resource) Follow(rt string) (*Resource, error) {
+func (r *Resource) Follow(rt string, v map[string]string) (*Resource, error) {
 	l, err := r.Link(rt)
 	if err != nil {
 		return nil, err
 	}
 
-	h, err := l.Resolve()
-	if err != nil {
-		return nil, err
-	}
+	r.Variables = v
+	if l.Templated && r.Variables != nil && len(r.Variables) > 0 {
+		h, err := l.Expand(r.Variables)
+		if err != nil {
+			return nil, err
+		}
 
-	return r.Go(h)
+		return r.Go(h)
+	} else {
+		h, err := l.Resolve()
+		if err != nil {
+			return nil, err
+		}
+
+		return r.Go(h)
+	}
 }

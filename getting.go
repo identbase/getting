@@ -31,13 +31,13 @@ func New(b string) (*Getting, error) {
 
 /*
 Follow is a shortcut for Go. */
-func (g *Getting) Follow(rt string) (*resource.Resource, error) {
+func (g *Getting) Follow(rt string, v map[string]string) (*resource.Resource, error) {
 	r, err := g.Go("")
 	if err != nil {
 		return nil, err
 	}
 
-	return r.Follow(rt)
+	return r.Follow(rt, v)
 
 }
 

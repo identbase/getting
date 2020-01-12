@@ -2,6 +2,8 @@ package link
 
 import (
 	"net/url"
+
+	"github.com/yosida95/uritemplate"
 )
 
 type LinkSet map[string][]Link
@@ -38,12 +40,36 @@ func (s LinkSet) Has(k string) bool {
 }
 
 type Link struct {
-	Context string
-	HRef    string
-	Rel     string
-	Name    string
-	Title   string
-	Type    string
+	Context   string
+	HRef      string
+	Rel       string
+	Name      string
+	Templated bool
+	Title     string
+	Type      string
+}
+
+func (l Link) Expand(lv map[string]string) (string, error) {
+	if !l.Templated {
+		return l.Resolve()
+	} else {
+		t, err := uritemplate.New(l.Context)
+		if err != nil {
+			return "", err
+		}
+
+		tv := uritemplate.Values{}
+		for k, v := range lv {
+			tv.Set(k, uritemplate.String(v))
+		}
+
+		h, err := t.Expand(tv)
+		if err != nil {
+			return "", err
+		}
+
+		return h, nil
+	}
 }
 
 func (l Link) Resolve() (string, error) {
