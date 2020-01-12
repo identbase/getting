@@ -142,6 +142,7 @@ func (b HALBody) MarshalJSON() ([]byte, error) {
 	var r map[string]interface{}
 
 	for k, v := range b.Properties {
+		fmt.Println("Marshalling properties", k, v)
 		r[k] = v
 	}
 
